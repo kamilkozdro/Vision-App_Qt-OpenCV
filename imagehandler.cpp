@@ -1,0 +1,125 @@
+#include "imagehandler.h"
+
+//FUNKCJE NOWYCH FILTROW DODAC PONIZEJ Z TAKIMI SAMYMI ARG.
+void filterBlur(cv::Mat &src, cv::Mat &dest, std::vector<float> args)
+{
+    //args[0] - width, args[1] - height
+    cv::blur(src, dest, cv::Size(args[0],args[1]));
+}
+
+void filterGaussian(cv::Mat &src, cv::Mat &dest, std::vector<float> args)
+{
+    //args[0] - width, args[1] - height, args[2] - sigmaX, args[3] - sigmaY
+    cv::GaussianBlur(src, dest, cv::Size(args[0], args[1]), args[2], args[3]);
+}
+
+void filterLaplacian(cv::Mat &src, cv::Mat &dest, std::vector<float> args)
+{
+    //args[0] - ddepth, args[1] - ksize
+    cv::Laplacian(src, dest, args[0], args[1]);
+}
+
+void filterSobel(cv::Mat &src, cv::Mat &dest, std::vector<float> args)
+{
+    //args[0] - ddepth, args[1] - dx, args[2] - dy, args[3] - ksize
+    cv::Sobel(src, dest, args[0], args[1], args[2], args[3]);
+}
+
+ImageHandler::ImageHandler()
+{
+    setMinArgsSizes();
+    keptFrame1Number = 0;
+    keptFrame2Number = 0;
+}
+
+ImageHandler::~ImageHandler()
+{
+
+}
+
+int ImageHandler::openCam(int camID)
+{
+    if(!cam.open(camID))
+    {
+        return 0;//zwroc blad
+    }
+    else
+        return 1;
+}
+
+void ImageHandler::addFilter(char FILTER_NAME,std::vector<float> filterParam)
+{
+    if(filterParam.size() < minArgsSize[FILTER_NAME-1])
+    {
+        return;//zglos blad
+    }
+
+    filtersUsed.push_back(FILTER_NAME);
+    filtersParam.push_back(filterParam);
+
+    //NOWY FILTR DODAC DO SWITCH/CASE
+    switch (FILTER_NAME)
+    {
+    case FILTER_BLUR:
+        filterFunctionPtrs.push_back((void(*)(cv::Mat&, cv::Mat&, std::vector<float>))filterBlur);
+        break;
+
+    case FILTER_GAUSSIAN:
+        filterFunctionPtrs.push_back((void(*)(cv::Mat&, cv::Mat&, std::vector<float>))filterGaussian);
+        break;
+
+    case FILTER_LAPLACIAN:
+        filterFunctionPtrs.push_back((void(*)(cv::Mat&, cv::Mat&, std::vector<float>))filterLaplacian);
+        break;
+    case FILTER_SOBEL:
+        filterFunctionPtrs.push_back((void(*)(cv::Mat&, cv::Mat&, std::vector<float>))filterSobel);
+        break;
+    default:
+        break;
+    }
+}
+
+void ImageHandler::removeFilter(int filterNumber)
+{
+    if(filterNumber <= filtersUsed.size())
+    {
+        filtersUsed.erase(filtersUsed.begin()+filterNumber);
+        filtersParam.erase(filtersParam.begin()+filterNumber);
+        filterFunctionPtrs.erase(filterFunctionPtrs.begin()+filterNumber);
+    }
+    else
+    {
+        ;//blad
+    }
+}
+
+void ImageHandler::updateObject()
+{
+    if(!cam.isOpened())
+        return;
+
+    cv::Mat frame;
+    cam >> frame;
+    if(keptFrame1Number == 0)
+        frame.copyTo(keptFrame1);
+    if(keptFrame2Number == 0)
+        frame.copyTo(keptFrame2);
+
+    for(int i=0; i<filtersUsed.size(); i++)
+    {
+        filterFunctionPtrs[i](frame, frame, filtersParam[i]);
+        if(keptFrame1Number == i+1)
+            frame.copyTo(keptFrame1);
+        else if(keptFrame2Number == i+1)
+            frame.copyTo(keptFrame2);
+    }
+}
+
+//DLA NOWYCH FILTROW WPROWADZIC MIN. LICZBE ARGUMENTOW
+void ImageHandler::setMinArgsSizes()
+{
+    minArgsSize[0] = 2;
+    minArgsSize[1] = 4;
+    minArgsSize[2] = 2;
+    minArgsSize[3] = 4;
+}

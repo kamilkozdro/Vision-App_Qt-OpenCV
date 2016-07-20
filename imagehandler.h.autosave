@@ -1,0 +1,47 @@
+#ifndef IMAGEHANDLER_H
+#define IMAGEHANDLER_H
+
+#include "opencv2/opencv.hpp"
+#include <vector>
+
+//DEFINICJE NOWYCH FILTROW DODAC PONIZEJ
+#define FILTER_BLUR 1
+#define FILTER_GAUSSIAN 2
+#define FILTER_LAPLACIAN 3
+#define FILTER_SOBEL 4
+#define FILTER_THRESHOLD 5
+
+class ImageHandler
+{
+public:
+    ImageHandler();
+    ~ImageHandler();
+
+    int openCam(int camID);
+    inline void releaseCam(){cam.release();}
+    inline bool isCamOpened(){return cam.isOpened();}
+    void addFilter(char FILTER_NAME,std::vector<float> filterParam);
+    void removeFilter(int filterNumber);
+    inline void setKeptFrame1(int filterNumber){keptFrame1Number = filterNumber;}
+    inline void setKeptFrame2(int filterNumber){keptFrame2Number = filterNumber;}
+    inline cv::Mat getFrame1(){return keptFrame1;}
+    inline cv::Mat getFrame2(){return keptFrame2;}
+    void updateObject();
+
+private:
+
+    void setMinArgsSizes();
+    //void filterFunction1(int src);
+    //void filterFunction2(cv::Mat &src, cv::Mat &dest, std::vector<float> args);
+    //void filterFunction3(cv::Mat &src, cv::Mat &dest, std::vector<float> args);
+
+    cv::VideoCapture cam;
+    cv::Mat keptFrame1, keptFrame2;
+    int keptFrame1Number ,keptFrame2Number;
+    int minArgsSize[4];
+    std::vector<char> filtersUsed;
+    std::vector< std::vector<float>> filtersParam;
+    std::vector<void(*)(cv::Mat&, cv::Mat&, std::vector<float>)> filterFunctionPtrs;
+};
+
+#endif // IMAGEHANDLER_H
